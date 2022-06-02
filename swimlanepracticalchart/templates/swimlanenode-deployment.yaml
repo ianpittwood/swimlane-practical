@@ -1,0 +1,54 @@
+{{- if .Values.swimlanenode.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "swimlanepracticalchart.fullname" . }}-swimlanenode
+  labels:
+    app: {{ template "swimlanepracticalchart.name" . }}-swimlanenode
+    chart: {{ template "swimlanepracticalchart.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "swimlanepracticalchart.name" . }}-swimlanenode
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "swimlanepracticalchart.name" . }}-swimlanenode
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}-swimlanenode
+        image: "{{ .Values.image.repository }}/swimlane-node:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        #command: ["sleep", "50000"]
+        env:
+        - name: DATABASE_HOST
+          value: {{ include "swimlanepracticalchart.mongodb.fullname" . }}
+        - name: DATABASE_PORT
+          value: "27017"
+        - name: DATABASE_USER
+          value: {{ .Values.mongodb.auth.username | quote }}
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "swimlanepracticalchart.mongodb.fullname" . }}
+              key: mongodb-passwords
+        - name: DATABASE_NAME
+          value: {{ .Values.mongodb.auth.database | quote }}
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+{{- end -}}
